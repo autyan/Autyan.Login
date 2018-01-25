@@ -1,0 +1,23 @@
+﻿@model Autyan.LoginWeb.Models.SignInViewModel
+
+@{
+    ViewBag.Title = "Login";
+}
+
+@{
+    using (Html.BeginForm("Login", "Account", FormMethod.Post))
+    {
+        <div>
+            @Html.DisplayNameFor(m => m.UserName)
+            @Html.TextBoxFor(m => m.UserName, new { @class = "form-control" })
+        </div>
+        <div>
+            @Html.DisplayNameFor(m => m.UserName)
+            @Html.PasswordFor(m => m.Password, new { @class = "form-control" })
+        </div>
+        <div>
+            @Html.ValidationSummary()
+        </div>
+        <Input type="submit" value="确认" class="btn btn-primary" />
+    }
+}

@@ -28,7 +28,7 @@ namespace Autyan.LoginWeb
             var wireUp = WireUp.Instance;
             wireUp.WormUpModel()
                 .RegisterService()
-                .UsrDapper()
+                .UseDapper()
                 .UseAutoFacMvc();
             MetadataContext.Instance.Initilize(AppDomain.CurrentDomain.GetAssemblies());
         }

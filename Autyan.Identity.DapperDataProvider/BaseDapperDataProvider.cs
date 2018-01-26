@@ -89,6 +89,7 @@ namespace Autyan.Identity.DapperDataProvider
             var builder = new StringBuilder();
             builder.Append("UPDATE ").Append(TableName).Append(" SET ")
                 .Append(string.Join(", ", Columns.Select(c => $"{c} = @{c}")));
+            entity.Id = await GetNextEntityIdAsync();
             return await Connection.ExecuteAsync(builder.ToString(), entity);
         }
 
@@ -98,6 +99,12 @@ namespace Autyan.Identity.DapperDataProvider
             builder.Append("UPDATE ").Append(TableName).Append(" SET ");
             var result = await Connection.QueryAsync<int>(builder.ToString(), condition);
             return result.Single();
+        }
+
+        protected virtual async Task<long> GetNextEntityIdAsync()
+        {
+            const string sql = "SELECT NEXT VALUE FOR EntityId FROM sys.sequences";
+            return await Connection.ExecuteScalarAsync<long>(sql);
         }
 
         protected virtual StringBuilder BuildQuerySql(TQuery query)

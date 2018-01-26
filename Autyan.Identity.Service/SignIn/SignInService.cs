@@ -15,25 +15,11 @@ namespace Autyan.Identity.Service.SignIn
             _userProvider = userProvider;
         }
 
-        public virtual SignInResult Register(IdentityUser user)
-        {
-            if (_userProvider.FirstOrDefault(new
-            {
-                user.LoginName
-            }) != null)
-            {
-                return SignInResult.Failed("用户已存在", SignInErrors.USER_EXISTS);
-            }
-            _userProvider.Insert(user);
-
-            return SignInResult.Success();
-        }
-
         public virtual async Task<SignInResult> RegisterAsync(IdentityUser user)
         {
-            var result = await _userProvider.FirstOrDefaultAsync(new
+            var result = await _userProvider.FirstOrDefaultAsync(new UserQuery
             {
-                user.LoginName
+                LoginName = user.LoginName
             });
             if (result != null)
             {
@@ -44,9 +30,9 @@ namespace Autyan.Identity.Service.SignIn
             return SignInResult.Success();
         }
 
-        public virtual SignInResult PasswordSignIn(string userName, string password)
+        public virtual async Task<SignInResult> PasswordSignInAsync(string userName, string password)
         {
-            var user = _userProvider.FirstOrDefault(new
+            var user = await _userProvider.FirstOrDefaultAsync(new UserQuery
             {
                 LoginName = userName
             });
@@ -68,40 +54,21 @@ namespace Autyan.Identity.Service.SignIn
 
             if (user.PasswordHash != password)
             {
-                return SignInResult.Failed("无效的密码", SignInErrors.PASSWORD_NOT_MATCH);
-            }
-
-            return SignInResult.Success();
-        }
-
-        public virtual async Task<SignInResult> PasswordSignInAsync(string userName, string password)
-        {
-            var user = await _userProvider.FirstOrDefaultAsync(new
-            {
-                LoginName = userName
-            });
-            if (user == null)
-            {
-                return SignInResult.Failed("无效的用户名", SignInErrors.USER_NOT_FOUND);
-            }
-
-            if (user.PasswordHash != password)
-            {
                 if (user.FailedLoginCount++ > 5)
                 {
-                    await UserLoginLock(user);
+                    await UserLoginLockAsync(user);
                 }
 
-                _userProvider.UpdateById(user);
+                await _userProvider.UpdateByIdAsync(user);
                 return SignInResult.Failed("无效的密码", SignInErrors.PASSWORD_NOT_MATCH);
             }
 
             return SignInResult.Success();
         }
 
-        public virtual async Task<SignInResult> UserLoginLock(long userId)
+        public virtual async Task<SignInResult> UserLoginLockAsync(long userId)
         {
-            var user = await _userProvider.FirstOrDefaultAsync(new
+            var user = await _userProvider.FirstOrDefaultAsync(new UserQuery
             {
                 Id = userId
             });
@@ -111,10 +78,10 @@ namespace Autyan.Identity.Service.SignIn
                 return SignInResult.Failed("用户ID不存在", SignInErrors.USER_NOT_FOUND);
             }
 
-            return await UserLoginLock(user);
+            return await UserLoginLockAsync(user);
         }
 
-        private async Task<SignInResult> UserLoginLock(IdentityUser user)
+        private async Task<SignInResult> UserLoginLockAsync(IdentityUser user)
         {
             user.UserLockoutEnabled = true;
             user.UserLockoutEndAt = DateTime.Now.AddHours(12);

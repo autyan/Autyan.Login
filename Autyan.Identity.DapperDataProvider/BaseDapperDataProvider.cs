@@ -2,230 +2,163 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Autyan.Identity.Core.Data;
+using Autyan.Identity.Core.DataConfig;
 using Autyan.Identity.Core.DataProvider;
+using Dapper;
 
 namespace Autyan.Identity.DapperDataProvider
 {
-    public class BaseDapperDataProvider<TEntity, TQuery> : IDataProvider<TEntity, TQuery>
+    public class BaseDapperDataProvider<TEntity, TQuery> :  IDataProvider<TEntity, TQuery>
         where TEntity : BaseEntity
         where TQuery : BaseQuery<TEntity>
     {
         private IDbConnection _connection;
 
-        protected IDbConnection Connection
-        {
-            get
-            {
-                if (_connection == null)
-                {
-                    _connection = Factory.GetConnection(DbConnectionName.Default);
-                }
-                return _connection;
-            }
-        }
+        protected IDbConnection Connection => _connection ?? (_connection = Factory.GetConnection(DbConnectionName.Default));
 
         protected readonly IDbConnectionFactory Factory;
+
+        protected DatabaseModelMetadata Metadata { get; }
+
+        protected string TableName => Metadata.TableName;
+
+        protected IEnumerable<string> Columns => Metadata.Columns;
 
         public BaseDapperDataProvider()
         {
             Factory = new DefaultDbConnectionFactory();
+            Metadata = MetadataContext.Instance[typeof(TEntity)];
         }
 
-        #region Interface Implemention
-        int IDataProvider<TEntity, TQuery>.DeleteById(TEntity entity)
-        {
-            return DeleteById(entity);
-        }
-
-        async Task<int> IDataProvider<TEntity, TQuery>.DeleteByIdAsync(TEntity entity)
-        {
-            return await DeleteByIdAsync(entity);
-        }
-
-        int IDataProvider<TEntity, TQuery>.DeleteByCondition(object condition)
-        {
-            return DeleteByCondition(condition);
-        }
-
-        async Task<int> IDataProvider<TEntity, TQuery>.DeleteByConditionAsync(object condition)
-        {
-            return await DeleteByConditionAsync(condition);
-        }
-
-        PagedResult<TEntity> IDataProvider<TEntity, TQuery>.PagingQuery(TQuery query)
-        {
-            return PageingQuery(query);
-        }
-
-        async Task<PagedResult<TEntity>> IDataProvider<TEntity, TQuery>.PagingQueryAsync(TQuery query)
-        {
-            return await PagingQueryAsync(query);
-        }
-
-        long IDataProvider<TEntity, TQuery>.Insert(TEntity entity)
-        {
-            return Insert(entity);
-        }
-
-        async Task<long> IDataProvider<TEntity, TQuery>.InsertAsync(TEntity entity)
-        {
-            return await InsertAsync(entity);
-        }
-
-        int IDataProvider<TEntity, TQuery>.BulkInsert(IEnumerable<TEntity> entities)
-        {
-            return BulkInsert(entities);
-        }
-
-        async Task<int> IDataProvider<TEntity, TQuery>.BulkInsertAsync(IEnumerable<TEntity> entities)
-        {
-            return await BulkInsertAsync(entities);
-        }
-
-        int IDataProvider<TEntity, TQuery>.Count(object condition)
-        {
-            return Count(condition);
-        }
-
-        async Task<int> IDataProvider<TEntity, TQuery>.CountAsync(object condition)
-        {
-            return await CountAsync(condition);
-        }
-
-        int IDataProvider<TEntity, TQuery>.UpdateById(TEntity entity)
-        {
-            return UpdateById(entity);
-        }
-
-        async Task<int> IDataProvider<TEntity, TQuery>.UpdateByIdAsync(TEntity entity)
-        {
-            return await UpdateByIdAsync(entity);
-        }
-
-        int IDataProvider<TEntity, TQuery>.UpdateByCondition(object data, object condition)
-        {
-            return UpdateByCondition(data, condition);
-        }
-
-        async Task<int> IDataProvider<TEntity, TQuery>.UpdateByConditionAsync(object data, object condition)
-        {
-            return await UpdateByConditionAsync(data, condition);
-        }
-
-        IEnumerable<TEntity> IDataProvider<TEntity, TQuery>.Where(object query)
-        {
-            return Where(query);
-        }
-
-        async Task<IEnumerable<TEntity>> IDataProvider<TEntity, TQuery>.WhereAsync(object query)
-        {
-            return await WhereAsync(query);
-        }
 
         public void Dispose()
         {
         }
-        #endregion
 
-        protected virtual long Insert(TEntity entity)
+        public virtual async Task<IEnumerable<TEntity>> QueryAsync(TQuery query)
         {
-            entity.Id = Connection.Ids();
-            return Connection.Insert(entity);
+            var builder = BuildQuerySql(query);
+
+            return await Connection.QueryAsync<TEntity>(builder.ToString(), query);
         }
 
-        protected virtual async Task<long> InsertAsync(TEntity entity)
+        public virtual Task<int> DeleteByIdAsync(long? id)
         {
-            entity.Id = await Connection.IdsAsync();
-            return await Connection.InsertAsync(entity);
+            var builder = new StringBuilder();
+            builder.Append("DELETE FROM ").Append(TableName).Append(" WHERE Id = @Id");
+
+            return Connection.ExecuteAsync(builder.ToString(), new {Id = id});
         }
 
-        protected virtual IEnumerable<TEntity> Where(object query)
+        public virtual async Task<int> UpdateByIdAsync(TEntity entity)
         {
-            return Connection.QueryList<TEntity>(query);
+            entity.ModifiedAt = DateTime.Now;
+            var builder = new StringBuilder();
+            builder.Append("UPDATE ").Append(TableName).Append(" SET ");
+            foreach (var column in Columns)
+            {
+                builder.Append(column).Append(" = @").Append(column).Append(" ");
+            }
+
+            return await Connection.ExecuteAsync(builder.ToString(), entity);
         }
 
-        protected virtual async Task<IEnumerable<TEntity>> WhereAsync(object query)
+        public virtual async Task<PagedResult<TEntity>> PagingQueryAsync(TQuery query)
         {
-            return await Connection.QueryListAsync<TEntity>(query);
+            if (query.Take == null) throw new ArgumentNullException(nameof(query.Take));
+            var queryBuilder = BuildQuerySql(query);
+            queryBuilder.Append("OFFSET ").Append(query.Skip ?? 0).Append(" ROWS FETCH NEXT ").Append(query.Take)
+                .Append(" ROWS ONLY");
+            var results = await Connection.QueryAsync<TEntity>(queryBuilder.ToString(), query);
+
+            var countBuilder = BuildCountSql(query);
+            var count = await Connection.QueryAsync<int>(countBuilder.ToString(), query);
+
+            return new PagedResult<TEntity>
+            {
+                Results = results,
+                TotalCount = count.Single()
+            };
         }
 
-        protected virtual int DeleteById(TEntity entity)
+        public virtual async Task<long> InsertAsync(TEntity entity)
         {
-            if(entity.Id == null) throw new ArgumentNullException(nameof(entity.Id));
-            return Connection.DeleteById<TEntity>(entity.Id.Value);
+            var builder = new StringBuilder();
+            builder.Append("UPDATE ").Append(TableName).Append(" SET ")
+                .Append(string.Join(", ", Columns.Select(c => $"{c} = @{c}")));
+            return await Connection.ExecuteAsync(builder.ToString(), entity);
         }
 
-        protected virtual async Task<int> DeleteByIdAsync(TEntity entity)
+        public virtual async Task<int> GetCountAsync(object condition)
         {
-            if (entity.Id == null) throw new ArgumentNullException(nameof(entity.Id));
-            return await Connection.DeleteByIdAsync<TEntity>(entity.Id.Value);
+            var builder = new StringBuilder();
+            builder.Append("UPDATE ").Append(TableName).Append(" SET ");
+            var result = await Connection.QueryAsync<int>(builder.ToString(), condition);
+            return result.Single();
         }
 
-        protected virtual int DeleteByCondition(object condition)
+        protected virtual StringBuilder BuildQuerySql(TQuery query)
         {
-            return Connection.Delete<TEntity>(condition);
+            var builder = new StringBuilder();
+            builder.Append("SELECT ").Append(string.Join(",", Columns)).Append(" FROM ").Append(TableName).Append(" WHERE 1= 1");
+            AppendWhere(builder, query);
+
+            return builder;
         }
 
-        protected virtual async Task<int> DeleteByConditionAsync(object condition)
+        protected virtual StringBuilder BuildCountSql(TQuery query)
         {
-            return await Connection.DeleteAsync<TEntity>(condition);
+            var builder = new StringBuilder();
+            builder.Append("SELECT COUNT(1) FROM ").Append(TableName).Append(" WHERE 1= 1");
+            AppendWhere(builder, query);
+
+            return builder;
         }
 
-        protected virtual int UpdateById(TEntity entity)
+        protected virtual void AppendWhere(StringBuilder builder, TQuery query)
         {
-            return Connection.UpdateByIdSelective(entity);
-        }
+            if (query.Id != null)
+            {
+                builder.Append(" AND Id = @Id ");
+            }
 
-        protected virtual async Task<int> UpdateByIdAsync(TEntity entity)
-        {
-            return await Connection.UpdateByIdSelectiveAsync(entity);
-        }
+            if (query.IdFrom != null)
+            {
+                builder.Append(" AND Id > @IdFrom");
+            }
 
-        protected virtual int Count(object condition)
-        {
-            return Connection.GetCount<TEntity>(condition);
-        }
+            if (query.IdTo != null)
+            {
+                builder.Append(" AND Id < @IdTo");
+            }
 
-        protected virtual async Task<int> CountAsync(object condition)
-        {
-            return await Connection.GetCountAsync<TEntity>(condition);
-        }
+            if (query.Ids != null)
+            {
+                builder.Append(" AND Id IN @Ids");
+            }
 
-        protected virtual int UpdateByCondition(object data, object condition)
-        {
-            return Connection.UpdateSelective<TEntity>(data, condition);
-        }
+            if (query.CreatedAtFrom != null)
+            {
+                builder.Append(" AND CreatedAt > @CreatedAtFrom");
+            }
 
-        protected virtual async Task<int> UpdateByConditionAsync(object data, object condition)
-        {
-            return await Connection.UpdateSelectiveAsync<TEntity>(data, condition);
-        }
+            if (query.CreatedAtTo != null)
+            {
+                builder.Append(" AND CreatedAt < @CreatedAtTo");
+            }
 
-        protected virtual int BulkInsert(IEnumerable<TEntity> entities)
-        {
-            return Connection.BulkInsert(entities.ToArray());
-        }
+            if (query.LastModifiedAtFrom != null)
+            {
+                builder.Append(" AND ModifiedAt > @LastModifiedAtFrom");
+            }
 
-        protected virtual async Task<int> BulkInsertAsync(IEnumerable<TEntity> entities)
-        {
-            return await Connection.BulkInsertAsync(entities.ToArray());
-        }
-
-        protected virtual PagedResult<TEntity> PageingQuery(TQuery query)
-        {
-            return null;
-        }
-
-        protected virtual async Task<PagedResult<TEntity>> PagingQueryAsync(TQuery query)
-        {
-            return await Task.FromResult(new PagedResult<TEntity>());
-        }
-
-        protected virtual void AppendQueryParams(TQuery query)
-        {
-
+            if (query.LastModifiedAtTo != null)
+            {
+                builder.Append(" AND ModifiedAt < @LastModifiedAtTo");
+            }
         }
     }
 }

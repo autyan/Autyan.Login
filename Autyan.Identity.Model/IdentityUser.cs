@@ -29,6 +29,6 @@ namespace Autyan.Identity.Model
 
         public DateTime? UserLockoutEndAtFrom { get; set; }
 
-        public DateTime? UserLockoutEndAtEnd { get; set; }
+        public DateTime? UserLockoutEndAtTo { get; set; }
     }
 }

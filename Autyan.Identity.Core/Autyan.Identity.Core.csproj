@@ -63,9 +63,7 @@
     <Compile Include="Data\BaseEntity.cs" />
     <Compile Include="Data\BaseQuery.cs" />
     <Compile Include="Data\OrderDirection.cs" />
-    <Compile Include="Extension\DapperExtension.cs" />
     <Compile Include="Extension\DataProvideerExtension.cs" />
-    <Compile Include="Extension\SqlBuilder.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Data\PagedResult.cs" />
   </ItemGroup>

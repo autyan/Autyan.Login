@@ -53,14 +53,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BaseDapperDataProvider.cs" />
-    <Compile Include="DapperExtension.cs" />
     <Compile Include="DbConnectionName.cs" />
     <Compile Include="DefaultDbConnectionFactory.cs" />
     <Compile Include="Extension.cs" />
     <Compile Include="IDbConnectionFactory.cs" />
     <Compile Include="IdentityUserProvider.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SqlBuilder.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Autyan.Identity.Core\Autyan.Identity.Core.csproj">

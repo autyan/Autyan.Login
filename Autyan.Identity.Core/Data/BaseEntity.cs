@@ -11,10 +11,10 @@ namespace Autyan.Identity.Core.Data
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
         public long? Id { get; set; }
 
-        public DateTime? CreateAt { get; set; }
+        public DateTime? CreatedAt { get; set; }
 
-        public DateTime? ModifyAt { get; set; }
+        public DateTime? ModifiedAt { get; set; }
 
-        public DateTime? DeleteAt { get; set; }
+        public DateTime? DeletedAt { get; set; }
     }
 }

@@ -1,71 +1,47 @@
-﻿using System.Collections.Generic;
-
-namespace Autyan.Identity.Service.SignIn
+﻿namespace Autyan.Identity.Service.SignIn
 {
-    public class SignInResult
+    public class SignInResult : BusinessResult
     {
-        private static readonly SignInResult _success = new SignInResult
+        protected new static readonly SignInResult SuccessResult = new SignInResult
         {
             Succeed = true
         };
 
-        public bool Succeed { get; protected set; }
-
-        public List<SignInError> SignInErrors { get; protected set; } = new List<SignInError>();
-
-        public static SignInResult Success() => _success;
-
-        public static SignInResult Failed(SignInError[] errors)
+        protected SignInResult(BusinessResult result) : this()
         {
-            var result = new SignInResult
-            {
-                Succeed = false
-            };
-
-            if (errors != null)
-            {
-                result.SignInErrors.AddRange(errors);
-            }
-
-            return result;
+            Succeed = result.Succeed;
         }
 
-        public static SignInResult Failed(SignInError error)
+        public SignInResult()
         {
-            var result = new SignInResult
-            {
-                Succeed = false
-            };
 
-            if (error != null)
-            {
-                result.SignInErrors.Add(error);
-            }
-
-            return result;
         }
 
-        public static SignInResult Failed(string description, SignInErrors errorCode)
-        {
-            var result = new SignInResult
-            {
-                Succeed = false
-            };
-
-            result.SignInErrors.Add(new SignInError
-            {
-                Description = description,
-                ErrorCode = errorCode
-            });
-
-            return result;
-        }
-    }
-
-    public class SignInError
-    {
         public SignInErrors ErrorCode { get; set; }
 
-        public string Description { get; set; }
+        public static SignInResult Success()
+        {
+            return SuccessResult;
+        }
+
+        public static SignInResult Failed(SignInErrors errorCode)
+        {
+            return new SignInResult
+            {
+                Succeed = false,
+                ErrorCode = errorCode
+            };
+        }
+
+        public static SignInResult Failed(string errorMessage, SignInErrors errorCode)
+        {
+            var result = new SignInResult
+            {
+                Succeed = false,
+                ErrorCode = errorCode
+            };
+            result.AddErrorMessage(errorMessage);
+            return result;
+        }
     }
 }

@@ -33,7 +33,6 @@ namespace Autyan.Identity.DapperDataProvider
             Metadata = MetadataContext.Instance[typeof(TEntity)];
         }
 
-
         public void Dispose()
         {
         }
@@ -58,10 +57,9 @@ namespace Autyan.Identity.DapperDataProvider
             entity.ModifiedAt = DateTime.Now;
             var builder = new StringBuilder();
             builder.Append("UPDATE ").Append(TableName).Append(" SET ");
-            foreach (var column in Columns)
-            {
-                builder.Append(column).Append(" = @").Append(column).Append(" ");
-            }
+            builder.Append(string.Join(",", Columns.Where(c => c != "Id").Select(c => $"{c} = @{c}")));
+            builder.Append(" WHERE Id = @Id");
+            entity.ModifiedAt = DateTime.Now;
 
             return await Connection.ExecuteAsync(builder.ToString(), entity);
         }
@@ -87,16 +85,19 @@ namespace Autyan.Identity.DapperDataProvider
         public virtual async Task<long> InsertAsync(TEntity entity)
         {
             var builder = new StringBuilder();
-            builder.Append("UPDATE ").Append(TableName).Append(" SET ")
-                .Append(string.Join(", ", Columns.Select(c => $"{c} = @{c}")));
+            builder.Append("INSERT INTO ").Append(TableName).Append(" ( ")
+                .Append(string.Join(", ", Columns)).Append(" ) VALUES (")
+                .Append(string.Join(", ", Columns.Select(c => $"@{c}")))
+                .Append(" )");
             entity.Id = await GetNextEntityIdAsync();
+            entity.CreatedAt = DateTime.Now;
             return await Connection.ExecuteAsync(builder.ToString(), entity);
         }
 
         public virtual async Task<int> GetCountAsync(object condition)
         {
             var builder = new StringBuilder();
-            builder.Append("UPDATE ").Append(TableName).Append(" SET ");
+            builder.Append("SELECT COUNT(1) FROM ").Append(TableName).Append(" WHERE 1= 1");
             var result = await Connection.QueryAsync<int>(builder.ToString(), condition);
             return result.Single();
         }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
@@ -10,14 +11,19 @@ namespace DataGenerater
 
         static void Main()
         {
+            var loginNames = new Dictionary<string, string>();
             using (var file = new StreamWriter("c:\\generate.txt"))
             {
-                //file.WriteLine("INSERT INTO IdentityUsers (LoginName, LoginNameFirstChar, LoginNameHashCode, PasswordHash) VALUES ");
                 var count = 1;
                 while (count < 10000000)
                 {
-                    var length = Random.Next(4, 15);
-                    var loginName = RandomString(length);
+                    string loginName;
+                    do
+                    {
+                        var length = Random.Next(8, 25);
+                        loginName = RandomString(length);
+                    } while (loginNames.ContainsKey(loginName));
+                    loginNames.Add(loginName, null);
                     file.WriteLine($"{count},{loginName},userlogin,0,,,{DateTime.Now:yyyy-MM-dd HH:mm:ss},,");
                     count++;
                 }

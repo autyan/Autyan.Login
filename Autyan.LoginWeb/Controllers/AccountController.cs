@@ -27,11 +27,6 @@ namespace Autyan.LoginWeb.Controllers
         [AllowAnonymous]
         public async Task<ActionResult> Register(UserRegisterViewModel model)
         {
-            if (!ModelState.IsValid)
-            {
-                return View(model);
-            }
-
             var newUser = new IdentityUser
             {
                 LoginName = model.UserName,
@@ -48,9 +43,9 @@ namespace Autyan.LoginWeb.Controllers
                 return Redirect("/");
             }
 
-            foreach (var error in result.SignInErrors)
+            foreach (var error in result.ErrorMessages)
             {
-                ModelState.AddModelError("", error.Description);
+                ModelState.AddModelError("", error);
             }
 
             return View(model);
@@ -71,9 +66,9 @@ namespace Autyan.LoginWeb.Controllers
 
             if (!result.Succeed)
             {
-                foreach (var error in result.SignInErrors)
+                foreach (var error in result.ErrorMessages)
                 {
-                    ModelState.AddModelError("", error.Description);
+                    ModelState.AddModelError("", error);
                     return View(model);
                 }
             }

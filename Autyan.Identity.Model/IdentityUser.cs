@@ -12,8 +12,6 @@ namespace Autyan.Identity.Model
 
         public virtual string PasswordHash { get; set; }
 
-        //public virtual string PasswordHashSalt { get; set; }
-
         public virtual bool? UserLockoutEnabled { get; set; }
 
         public virtual DateTime? UserLockoutEndAt { get; set; }

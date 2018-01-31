@@ -25,6 +25,8 @@ namespace Autyan.Identity.Service.SignIn
             {
                 return SignInResult.Failed("用户已存在", SignInErrors.USER_EXISTS);
             }
+
+            user.UserLockoutEnabled = false;
             await _userProvider.InsertAsync(user);
 
             return SignInResult.Success();
@@ -41,15 +43,15 @@ namespace Autyan.Identity.Service.SignIn
                 return SignInResult.Failed("无效的用户名", SignInErrors.USER_NOT_FOUND);
             }
 
-            if (user.UserLockoutEnabled == true && user.UserLockoutEndAt != null)
+            if (user.UserLockoutEndAt != null && user.UserLockoutEndAt.Value > DateTime.Now)
             {
                 return SignInResult.Failed($"用户登陆已锁定至{user.UserLockoutEndAt.Value:yyyy-MM-dd HH:mm}，请在解锁后尝试登陆。",
-                    SignInErrors.USER_IS_LOCKED);
+                    SignInErrors.USER_IS_lOCKED_TO_DATE);
             }
 
             if (user.UserLockoutEnabled == true)
             {
-                return SignInResult.Failed("用户登陆已锁定，请在稍后尝试登陆。", SignInErrors.USER_IS_lOCKED_TO_DATE);
+                return SignInResult.Failed("用户登陆已锁定，请在稍后尝试登陆。", SignInErrors.USER_IS_LOCKED);
             }
 
             if (user.PasswordHash != password)

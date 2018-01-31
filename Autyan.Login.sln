@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.27130.2024
+VisualStudioVersion = 15.0.27130.2026
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Autyan.Identity.Model", "Autyan.Identity.Model\Autyan.Identity.Model.csproj", "{69FBEB47-4947-4708-A093-3CF02C588608}"
 EndProject
@@ -26,6 +26,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Test", "Test", "{F575BED3-DE6A-43EE-9EE0-DF8BB4AA3949}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataGenerater", "DataGenerater\DataGenerater.csproj", "{253E1AF5-E80B-473D-A707-AF57CC7AD38F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DapperDataProviderTest", "DapperDataProviderTest\DapperDataProviderTest.csproj", "{68777CFF-6CD9-47B7-8D35-35C7F7EB12CE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -57,6 +59,10 @@ Global
 		{253E1AF5-E80B-473D-A707-AF57CC7AD38F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{253E1AF5-E80B-473D-A707-AF57CC7AD38F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{253E1AF5-E80B-473D-A707-AF57CC7AD38F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{68777CFF-6CD9-47B7-8D35-35C7F7EB12CE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{68777CFF-6CD9-47B7-8D35-35C7F7EB12CE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{68777CFF-6CD9-47B7-8D35-35C7F7EB12CE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{68777CFF-6CD9-47B7-8D35-35C7F7EB12CE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -68,6 +74,7 @@ Global
 		{0C05D954-FC1F-4396-BB4B-666DD2C39C6C} = {5A94D7B8-52F5-4F95-8F3B-C1AA4802392D}
 		{584E265D-3228-42A3-94D5-89801A9C0163} = {90120978-46DE-410A-BB08-DB7B93269096}
 		{253E1AF5-E80B-473D-A707-AF57CC7AD38F} = {F575BED3-DE6A-43EE-9EE0-DF8BB4AA3949}
+		{68777CFF-6CD9-47B7-8D35-35C7F7EB12CE} = {F575BED3-DE6A-43EE-9EE0-DF8BB4AA3949}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A1288CF4-BCD8-4263-9BEE-F404B5E1EDDA}

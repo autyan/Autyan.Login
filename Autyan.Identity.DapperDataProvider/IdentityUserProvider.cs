@@ -1,6 +1,8 @@
 ﻿using System.Text;
+using System.Threading.Tasks;
 using Autyan.Identity.Model;
 using Autyan.Identity.Model.DataProvider;
+using Dapper;
 
 namespace Autyan.Identity.DapperDataProvider
 {

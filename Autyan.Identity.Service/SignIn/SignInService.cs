@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Autyan.Identity.Core.Extension;
 using Autyan.Identity.Model;
 using Autyan.Identity.Model.DataProvider;
 
@@ -70,7 +69,7 @@ namespace Autyan.Identity.Service.SignIn
 
         public virtual async Task<SignInResult> UserLoginLockAsync(long userId)
         {
-            var user = await _userProvider.FirstOrDefaultAsync(new UserQuery
+            var user = await _userProvider.FirstOrDefaultAsync( new UserQuery
             {
                 Id = userId
             });

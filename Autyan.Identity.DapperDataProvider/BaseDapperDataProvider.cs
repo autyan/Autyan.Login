@@ -37,6 +37,13 @@ namespace Autyan.Identity.DapperDataProvider
         {
         }
 
+        public virtual async Task<TEntity> FirstOrDefaultAsync(TQuery query)
+        {
+            var builder = BuildQuerySql(query);
+
+            return await Connection.QueryFirstOrDefaultAsync<TEntity>(builder.ToString(), query);
+        }
+
         public virtual async Task<IEnumerable<TEntity>> QueryAsync(TQuery query)
         {
             var builder = BuildQuerySql(query);
@@ -87,9 +94,9 @@ namespace Autyan.Identity.DapperDataProvider
             var builder = new StringBuilder();
             builder.Append("INSERT INTO ").Append(TableName).Append(" ( ")
                 .Append(string.Join(", ", Columns)).Append(" ) VALUES (")
-                .Append(string.Join(", ", Columns.Select(c => $"@{c}")))
+                .Append(" NEXT VALUE FOR DBO.EntityId, ")
+                .Append(string.Join(", ", Columns.Where(c => c != "Id").Select(c => $"@{c}")))
                 .Append(" )");
-            entity.Id = await GetNextEntityIdAsync();
             entity.CreatedAt = DateTime.Now;
             return await Connection.ExecuteAsync(builder.ToString(), entity);
         }
@@ -113,6 +120,7 @@ namespace Autyan.Identity.DapperDataProvider
             var builder = new StringBuilder();
             builder.Append("SELECT ").Append(string.Join(",", Columns)).Append(" FROM ").Append(TableName).Append(" WHERE 1= 1");
             AppendWhere(builder, query);
+            builder.Append(";");
 
             return builder;
         }

@@ -1,11 +1,14 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Autyan.Identity.Core.Component;
 using Autyan.Identity.Core.DataConfig;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Autyan.Identity.Model;
+using Autyan.Identity.Service.SignIn;
 
 namespace Autyan.Identity.DapperDataProvider.Tests
 {
@@ -22,26 +25,54 @@ namespace Autyan.Identity.DapperDataProvider.Tests
         [TestMethod()]
         public void QueryAsyncTest()
         {
-            var provider = new IdentityUserProvider();
-            IEnumerable<IdentityUser> queryResult;
-            Task.Run(async () =>
-            {
-                var query = new UserQuery
-                {
-                    IdFrom = 5000,
-                    IdTo = 50000
-                };
-                queryResult = await provider.QueryAsync(query);
-                Assert.AreEqual(50000 - 5001, queryResult.Count());
+            Query();
+        }
 
-                query = new UserQuery
+        private static void Query()
+        {
+            var usersQueue = new ConcurrentQueue<IdentityUser>();
+            var resultsQueue = new ConcurrentQueue<SignInResult>();
+            var random = new Random();
+            const int threadCounts = 10;
+            const int processTotal = 50000;
+            using (var provider = new IdentityUserProvider())
+            {
+                for (var i = 0; i < processTotal; i++)
                 {
-                    Ids = new []{1L,3,5,7,9,2,4,6,8,10}
-                };
-                queryResult = await provider.QueryAsync(query);
-                Assert.AreEqual(10, queryResult.Count());
-                provider.Dispose();
-            }).GetAwaiter().GetResult();
+                    var user = provider.FirstOrDefaultAsync(new UserQuery
+                    {
+                        Id = random.Next(0, 9999998)
+                    }).GetAwaiter().GetResult();
+                    usersQueue.Enqueue(user);
+                }
+            }
+
+            var watch = new Stopwatch();
+            var tasks = new List<Task>();
+            watch.Start();
+            for (var i = 0; i < threadCounts; i++)
+            {
+                tasks.Add(RunQueryAsync(usersQueue, resultsQueue));
+            }
+
+            Task.WaitAll(tasks.ToArray());
+
+            watch.Stop();
+            var avg = processTotal / (watch.Elapsed.TotalMilliseconds / 1000);
+            Console.WriteLine($"useage : {watch.Elapsed.TotalMilliseconds} ms,  avg : {avg:F3} tps, callCount : {resultsQueue.Count}, successCount : {resultsQueue.Count(r => r.Succeed)}");
+        }
+
+        private static async Task RunQueryAsync(ConcurrentQueue<IdentityUser> queue, ConcurrentQueue<SignInResult> resultsQueue)
+        {
+            while (queue.TryDequeue(out var newUser))
+            {
+                using (var provider = new IdentityUserProvider())
+                {
+                    var service = new SignInService(provider);
+                    var result = await service.PasswordSignInAsync(newUser.LoginName, newUser.PasswordHash);
+                    //resultsQueue.Enqueue(result);
+                }
+            }
         }
 
         [TestMethod]
@@ -74,26 +105,77 @@ namespace Autyan.Identity.DapperDataProvider.Tests
         [TestMethod]
         public void InsertAsyncTest()
         {
-            var provider = new IdentityUserProvider();
-            Task.Run(async () =>
+            Insert();
+        }
+
+        private static void Insert()
+        {
+            var usersQueue = new ConcurrentQueue<IdentityUser>();
+            var resultsQueue = new ConcurrentQueue<SignInResult>();
+            const int threadCounts = 20;
+            const int processTotal = 50000;
+            var random = new Random();
+            var loginNames = new Dictionary<string, string>();
+            using (var provider = new IdentityUserProvider())
             {
-                var user = new IdentityUser
+                var index = 0;
+                while (index < processTotal)
                 {
-                    LoginName = "TempUser",
-                    PasswordHash = "LoginUser",
-                    UserLockoutEnabled = false
-                };
-                await provider.InsertAsync(user);
-                var queryResult = await provider.QueryAsync(new UserQuery
+                    var randomName = RandomString(random.Next(4, 20), random);
+                    if (loginNames.ContainsKey(randomName)) continue;
+                    var user = provider.FirstOrDefaultAsync(new UserQuery
+                    {
+                        LoginName = randomName
+                    }).GetAwaiter().GetResult();
+                    if (user != null) continue;
+
+                    loginNames.Add(randomName, randomName);
+                    usersQueue.Enqueue(new IdentityUser
+                    {
+                        LoginName = randomName,
+                        PasswordHash = "userlogin"
+                    });
+                    index++;
+                }
+            }
+
+            var watch = new Stopwatch();
+            var tasks = new List<Task>();
+            watch.Start();
+            for (var i = 0; i < threadCounts; i++)
+            {
+                tasks.Add(RunInsertAsync(usersQueue, resultsQueue));
+            }
+
+            Task.WaitAll(tasks.ToArray());
+
+            watch.Stop();
+
+            var avg = processTotal / (watch.Elapsed.TotalMilliseconds / 1000);
+            Console.WriteLine($"useage : {watch.Elapsed.TotalMilliseconds} ms,  avg : {avg:F3} tps, callCount : {resultsQueue.Count}, successCount : {resultsQueue.Count(r => r.Succeed)}");
+        }
+
+        public static async Task RunInsertAsync(ConcurrentQueue<IdentityUser> usersQueue, ConcurrentQueue<SignInResult> resultQueue)
+        {
+            while (usersQueue.TryDequeue(out var user))
+            {
+                using (var provider = new IdentityUserProvider())
                 {
-                    LoginName = "TempUser"
-                });
-                var insertedUser = queryResult.FirstOrDefault();
-                Assert.IsNotNull(insertedUser);
-                Assert.AreEqual(user.Id, insertedUser.Id);
-                await provider.DeleteByIdAsync(insertedUser.Id);
-                provider.Dispose();
-            }).GetAwaiter().GetResult();
+                    var service = new SignInService(provider);
+                    var result = await service.RegisterAsync(user);
+                    if (result.Succeed)
+                    {
+                        resultQueue.Enqueue(result);
+                    }
+                }
+            }
+        }
+
+        public static string RandomString(int length, Random random)
+        {
+            const string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            return new string(Enumerable.Repeat(chars, length)
+                .Select(s => s[random.Next(s.Length)]).ToArray());
         }
     }
 }

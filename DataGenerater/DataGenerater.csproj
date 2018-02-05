@@ -49,10 +49,25 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Autyan.Identity.Core\Autyan.Identity.Core.csproj">
+      <Project>{0C05D954-FC1F-4396-BB4B-666DD2C39C6C}</Project>
+      <Name>Autyan.Identity.Core</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Autyan.Identity.DapperDataProvider\Autyan.Identity.DapperDataProvider.csproj">
+      <Project>{584E265D-3228-42A3-94D5-89801A9C0163}</Project>
+      <Name>Autyan.Identity.DapperDataProvider</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Autyan.Identity.Model\Autyan.Identity.Model.csproj">
       <Project>{69fbeb47-4947-4708-a093-3cf02c588608}</Project>
       <Name>Autyan.Identity.Model</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Autyan.Identity.Service\Autyan.Identity.Service.csproj">
+      <Project>{CD84276D-9D28-48FF-AA6A-2590774B028E}</Project>
+      <Name>Autyan.Identity.Service</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Config\ConnectionString.Debug.xml" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

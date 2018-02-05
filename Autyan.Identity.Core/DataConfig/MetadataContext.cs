@@ -33,11 +33,18 @@ namespace Autyan.Identity.Core.DataConfig
             var finder = TypeFinder.SetScope(assemblies);
             foreach (var type in finder.Where(t => !t.IsAbstract && t.IsClass && t.BaseType == typeof(BaseEntity)))
             {
+                var properties =
+                    type.GetProperties(BindingFlags.GetProperty | BindingFlags.Instance | BindingFlags.Public);
+                var columns = new List<string>();
+                if (properties.Any(p => p.Name == "Id"))
+                {
+                    columns.Add("Id");
+                }
+                columns.AddRange(properties.Where(p => p.Name != "Id" && DatabaseTypes.Contains(p.PropertyType)).Select(p => p.Name));
                 MetadataMapping[type] = new DatabaseModelMetadata
                 {
                     TableName = type.Name.Pluralize(),
-                    Columns = type.GetProperties(BindingFlags.GetProperty | BindingFlags.Instance | BindingFlags.Public)
-                        .Where(p => DatabaseTypes.Contains(p.PropertyType)).Select(p => p.Name).ToList()
+                    Columns = columns
                 };
             }
         }

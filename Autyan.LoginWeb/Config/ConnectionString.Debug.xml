@@ -1,4 +1,4 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <connectionStrings>
-  <add name="Default" connectionString="Data Source=(LocalDb)\MSSQLLocalDB; Initial Catalog=IdentityDemo;Integrated Security=SSPI;AttachDBFilename=|DataDirectory|\IdentityDemo.mdf" providerName="System.Data.SqlClient"/>
+  <add name="Default" connectionString="Data Source=LL-04-026\SQLEXPRESS;Initial Catalog=IdentityDemo;Persist Security Info=True;User ID=sa;Password=luluyou" providerName="System.Data.SqlClient"/>
 </connectionStrings>

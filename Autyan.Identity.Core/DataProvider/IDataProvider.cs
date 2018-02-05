@@ -9,6 +9,8 @@ namespace Autyan.Identity.Core.DataProvider
         where TEntity : BaseEntity
         where TQuery : BaseQuery<TEntity>
     {
+        Task<TEntity> FirstOrDefaultAsync(TQuery query);
+
         Task<IEnumerable<TEntity>> QueryAsync(TQuery query);
 
         Task<int> DeleteByIdAsync(long? id);

@@ -29,6 +29,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataGenerater", "DataGenera
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DapperDataProviderTest", "DapperDataProviderTest\DapperDataProviderTest.csproj", "{68777CFF-6CD9-47B7-8D35-35C7F7EB12CE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConcurrencyPostTest", "ConcurrencyPostTest\ConcurrencyPostTest.csproj", "{48A7F1EA-AA9F-4FA6-A865-A46E09A854B8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -63,6 +65,10 @@ Global
 		{68777CFF-6CD9-47B7-8D35-35C7F7EB12CE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{68777CFF-6CD9-47B7-8D35-35C7F7EB12CE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{68777CFF-6CD9-47B7-8D35-35C7F7EB12CE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{48A7F1EA-AA9F-4FA6-A865-A46E09A854B8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{48A7F1EA-AA9F-4FA6-A865-A46E09A854B8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{48A7F1EA-AA9F-4FA6-A865-A46E09A854B8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{48A7F1EA-AA9F-4FA6-A865-A46E09A854B8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -75,6 +81,7 @@ Global
 		{584E265D-3228-42A3-94D5-89801A9C0163} = {90120978-46DE-410A-BB08-DB7B93269096}
 		{253E1AF5-E80B-473D-A707-AF57CC7AD38F} = {F575BED3-DE6A-43EE-9EE0-DF8BB4AA3949}
 		{68777CFF-6CD9-47B7-8D35-35C7F7EB12CE} = {F575BED3-DE6A-43EE-9EE0-DF8BB4AA3949}
+		{48A7F1EA-AA9F-4FA6-A865-A46E09A854B8} = {F575BED3-DE6A-43EE-9EE0-DF8BB4AA3949}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A1288CF4-BCD8-4263-9BEE-F404B5E1EDDA}

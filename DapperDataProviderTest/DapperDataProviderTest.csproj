@@ -68,6 +68,10 @@
       <Project>{69FBEB47-4947-4708-A093-3CF02C588608}</Project>
       <Name>Autyan.Identity.Model</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Autyan.Identity.Service\Autyan.Identity.Service.csproj">
+      <Project>{CD84276D-9D28-48FF-AA6A-2590774B028E}</Project>
+      <Name>Autyan.Identity.Service</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Content Include="Config\ConnectionString.Debug.xml" />

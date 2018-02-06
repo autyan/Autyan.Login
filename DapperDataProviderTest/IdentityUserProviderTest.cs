@@ -33,8 +33,8 @@ namespace Autyan.Identity.DapperDataProvider.Tests
             var usersQueue = new ConcurrentQueue<IdentityUser>();
             var resultsQueue = new ConcurrentQueue<SignInResult>();
             var random = new Random();
-            const int threadCounts = 10;
-            const int processTotal = 50000;
+            const int threadCounts = 20;
+            const int processTotal = 500000;
             using (var provider = new IdentityUserProvider())
             {
                 for (var i = 0; i < processTotal; i++)
@@ -59,7 +59,7 @@ namespace Autyan.Identity.DapperDataProvider.Tests
 
             watch.Stop();
             var avg = processTotal / (watch.Elapsed.TotalMilliseconds / 1000);
-            Console.WriteLine($"useage : {watch.Elapsed.TotalMilliseconds} ms,  avg : {avg:F3} tps, callCount : {resultsQueue.Count}, successCount : {resultsQueue.Count(r => r.Succeed)}");
+            Console.WriteLine($"useage : {watch.Elapsed.TotalMilliseconds} ms,  avg : {avg:F3} qps, callCount : {resultsQueue.Count}, successCount : {resultsQueue.Count(r => r.Succeed)}");
         }
 
         private static async Task RunQueryAsync(ConcurrentQueue<IdentityUser> queue, ConcurrentQueue<SignInResult> resultsQueue)
@@ -113,7 +113,7 @@ namespace Autyan.Identity.DapperDataProvider.Tests
             var usersQueue = new ConcurrentQueue<IdentityUser>();
             var resultsQueue = new ConcurrentQueue<SignInResult>();
             const int threadCounts = 20;
-            const int processTotal = 50000;
+            const int processTotal = 1000000;
             var random = new Random();
             var loginNames = new Dictionary<string, string>();
             using (var provider = new IdentityUserProvider())
@@ -152,7 +152,7 @@ namespace Autyan.Identity.DapperDataProvider.Tests
             watch.Stop();
 
             var avg = processTotal / (watch.Elapsed.TotalMilliseconds / 1000);
-            Console.WriteLine($"useage : {watch.Elapsed.TotalMilliseconds} ms,  avg : {avg:F3} tps, callCount : {resultsQueue.Count}, successCount : {resultsQueue.Count(r => r.Succeed)}");
+            Console.WriteLine($"currenttime: {DateTime.Now:HH:mm:ss,fff},useage : {watch.Elapsed.TotalMilliseconds} ms,  avg : {avg:F3} qps, callCount : {resultsQueue.Count}, successCount : {resultsQueue.Count(r => r.Succeed)}");
         }
 
         public static async Task RunInsertAsync(ConcurrentQueue<IdentityUser> usersQueue, ConcurrentQueue<SignInResult> resultQueue)
@@ -163,10 +163,10 @@ namespace Autyan.Identity.DapperDataProvider.Tests
                 {
                     var service = new SignInService(provider);
                     var result = await service.RegisterAsync(user);
-                    if (result.Succeed)
-                    {
-                        resultQueue.Enqueue(result);
-                    }
+                    //if (result.Succeed)
+                    //{
+                    //    resultQueue.Enqueue(result);
+                    //}
                 }
             }
         }

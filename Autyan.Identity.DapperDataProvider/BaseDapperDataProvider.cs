@@ -214,7 +214,7 @@ namespace Autyan.Identity.DapperDataProvider
 
     public class BaseDapperDataProvider
     {
-        protected static ConcurrentDictionary<Type, List<PropertyInfo>> ParamtersCache = new ConcurrentDictionary<Type, List<PropertyInfo>>();
+        protected static ConcurrentDictionary<Type, List<PropertyInfo>> ParamtersCache { get; } = new ConcurrentDictionary<Type, List<PropertyInfo>>();
 
         protected static List<PropertyInfo> GetProperties(Type type)
         {

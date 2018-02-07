@@ -80,6 +80,8 @@
     <Compile Include="Data\BaseEntity.cs" />
     <Compile Include="Data\BaseQuery.cs" />
     <Compile Include="Data\OrderDirection.cs" />
+    <Compile Include="Extension\StringExtensions.cs" />
+    <Compile Include="Extension\TypeExtensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Data\PagedResult.cs" />
   </ItemGroup>
@@ -94,7 +96,6 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Extension\" />
     <Folder Include="Loggers\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

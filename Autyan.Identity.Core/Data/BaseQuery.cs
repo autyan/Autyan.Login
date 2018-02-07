@@ -6,7 +6,7 @@ namespace Autyan.Identity.Core.Data
     {
         public long? Id { get; set; }
 
-        public long[] Ids { get; set; }
+        public long[] IdRange { get; set; }
 
         public long? IdFrom { get; set; }
 
@@ -27,6 +27,5 @@ namespace Autyan.Identity.Core.Data
 
     public class BaseQuery<TEntity> : BaseQuery where TEntity : BaseEntity
     {
-
     }
 }

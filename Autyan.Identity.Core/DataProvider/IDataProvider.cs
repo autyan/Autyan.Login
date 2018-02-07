@@ -1,11 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Autyan.Identity.Core.Data;
 
 namespace Autyan.Identity.Core.DataProvider
 {
-    public interface IDataProvider<TEntity, TQuery> : IDisposable
+    public interface IDataProvider<TEntity, in TQuery>
         where TEntity : BaseEntity
         where TQuery : BaseQuery<TEntity>
     {
@@ -13,7 +12,7 @@ namespace Autyan.Identity.Core.DataProvider
 
         Task<IEnumerable<TEntity>> QueryAsync(TQuery query);
 
-        Task<int> DeleteByIdAsync(long? id);
+        Task<int> DeleteByIdAsync(TEntity entity);
 
         Task<int> UpdateByIdAsync(TEntity entity);
 

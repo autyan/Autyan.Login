@@ -37,13 +37,18 @@ namespace Autyan.Identity.DapperDataProvider.Tests
             const int processTotal = 500000;
             using (var provider = new IdentityUserProvider())
             {
-                for (var i = 0; i < processTotal; i++)
+                for (var i = 0; i < 25; i++)
                 {
-                    var user = provider.FirstOrDefaultAsync(new UserQuery
+                    var start = random.Next(0, 9999998);
+                    var users = provider.QueryAsync(new UserQuery
                     {
-                        Id = random.Next(0, 9999998)
-                    }).GetAwaiter().GetResult();
-                    usersQueue.Enqueue(user);
+                        IdFrom = start,
+                        IdTo = start + 20000
+                    }).Result.ToList();
+                    foreach (var user in users)
+                    {
+                        usersQueue.Enqueue(user);
+                    }
                 }
             }
 
@@ -123,11 +128,11 @@ namespace Autyan.Identity.DapperDataProvider.Tests
                 {
                     var randomName = RandomString(random.Next(4, 20), random);
                     if (loginNames.ContainsKey(randomName)) continue;
-                    var user = provider.FirstOrDefaultAsync(new UserQuery
-                    {
-                        LoginName = randomName
-                    }).GetAwaiter().GetResult();
-                    if (user != null) continue;
+                    //var user = provider.FirstOrDefaultAsync(new UserQuery
+                    //{
+                    //    LoginName = randomName
+                    //}).Result;
+                    //if (user != null) continue;
 
                     loginNames.Add(randomName, randomName);
                     usersQueue.Enqueue(new IdentityUser

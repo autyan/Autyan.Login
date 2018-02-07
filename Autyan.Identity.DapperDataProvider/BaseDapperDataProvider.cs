@@ -1,17 +1,21 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Data;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Autyan.Identity.Core.Data;
 using Autyan.Identity.Core.DataConfig;
 using Autyan.Identity.Core.DataProvider;
+using Autyan.Identity.Core.Extension;
 using Dapper;
 
 namespace Autyan.Identity.DapperDataProvider
 {
-    public class BaseDapperDataProvider<TEntity, TQuery> :  IDataProvider<TEntity, TQuery>
+    public class BaseDapperDataProvider<TEntity, TQuery> : BaseDapperDataProvider, IDataProvider<TEntity, TQuery>
         where TEntity : BaseEntity
         where TQuery : BaseQuery<TEntity>
     {
@@ -27,14 +31,12 @@ namespace Autyan.Identity.DapperDataProvider
 
         protected IEnumerable<string> Columns => Metadata.Columns;
 
+        protected DatabaseGeneratedOption KeyOption => Metadata.Key.Option;
+
         public BaseDapperDataProvider()
         {
             Factory = new DefaultDbConnectionFactory();
             Metadata = MetadataContext.Instance[typeof(TEntity)];
-        }
-
-        public void Dispose()
-        {
         }
 
         public virtual async Task<TEntity> FirstOrDefaultAsync(TQuery query)
@@ -51,12 +53,12 @@ namespace Autyan.Identity.DapperDataProvider
             return await Connection.QueryAsync<TEntity>(builder.ToString(), query);
         }
 
-        public virtual Task<int> DeleteByIdAsync(long? id)
+        public virtual Task<int> DeleteByIdAsync(TEntity entity)
         {
             var builder = new StringBuilder();
             builder.Append("DELETE FROM ").Append(TableName).Append(" WHERE Id = @Id");
 
-            return Connection.ExecuteAsync(builder.ToString(), new {Id = id});
+            return Connection.ExecuteAsync(builder.ToString(), new {entity.Id});
         }
 
         public virtual async Task<int> UpdateByIdAsync(TEntity entity)
@@ -92,19 +94,54 @@ namespace Autyan.Identity.DapperDataProvider
         public virtual async Task<long> InsertAsync(TEntity entity)
         {
             var builder = new StringBuilder();
+            switch (KeyOption)
+            {
+                case DatabaseGeneratedOption.None:
+                    GetSequenceInsertSql(builder);
+                    break;
+                case DatabaseGeneratedOption.Identity:
+                    GetIdentityInsertSql(builder);
+                    break;
+                case DatabaseGeneratedOption.Computed:
+                    GetComputedInsertSql(builder);
+                    break;
+            }
+            entity.CreatedAt = DateTime.Now;
+            return await Connection.ExecuteAsync(builder.ToString(), entity);
+        }
+
+        private void GetSequenceInsertSql(StringBuilder builder)
+        {
             builder.Append("INSERT INTO ").Append(TableName).Append(" ( ")
                 .Append(string.Join(", ", Columns)).Append(" ) VALUES (")
                 .Append(" NEXT VALUE FOR DBO.EntityId, ")
                 .Append(string.Join(", ", Columns.Where(c => c != "Id").Select(c => $"@{c}")))
                 .Append(" )");
-            entity.CreatedAt = DateTime.Now;
-            return await Connection.ExecuteAsync(builder.ToString(), entity);
+        }
+
+        private void GetIdentityInsertSql(StringBuilder builder)
+        {
+            var insertColumns = Columns.Where(c => c != "Id").ToArray();
+            builder.Append("INSERT INTO ").Append(TableName).Append(" ( ")
+                .Append(string.Join(", ", insertColumns)).Append(" ) VALUES (")
+                .Append(string.Join(", ", insertColumns.Select(c => $"@{c}")))
+                .Append(" )");
+        }
+
+        private void GetComputedInsertSql(StringBuilder builder)
+        {
+            var insertColumns = Columns.Where(c => c != "Id").ToArray();
+            builder.Append("INSERT INTO ").Append(TableName).Append(" ( ")
+                .Append(string.Join(", ", insertColumns)).Append(" ) VALUES (")
+                .Append(string.Join(", ", insertColumns.Select(c => $"@{c}")))
+                .Append(" )");
         }
 
         public virtual async Task<int> GetCountAsync(object condition)
         {
             var builder = new StringBuilder();
             builder.Append("SELECT COUNT(1) FROM ").Append(TableName).Append(" WHERE 1= 1");
+            AppendWhere(builder, condition);
             var result = await Connection.QueryAsync<int>(builder.ToString(), condition);
             return result.Single();
         }
@@ -134,47 +171,59 @@ namespace Autyan.Identity.DapperDataProvider
             return builder;
         }
 
-        protected virtual void AppendWhere(StringBuilder builder, TQuery query)
+        protected virtual void AppendWhere(StringBuilder builder, object query)
         {
-            if (query.Id != null)
+            var queryParamters = GetProperties(query.GetType())
+                .Where(p => p.PropertyType.IsQueryTypes());
+
+            foreach (var queryParamter in queryParamters)
             {
-                builder.Append(" AND Id = @Id ");
+                if (queryParamter.GetValue(query) != null)
+                {
+                    AppendWhereOnQueryParamter(builder, queryParamter);
+                }
+            }
+        }
+
+        protected virtual void AppendWhereOnQueryParamter(StringBuilder builder, PropertyInfo queryParamter)
+        {
+            if (queryParamter.Name.EndsWith("Range") && queryParamter.PropertyType.IsArray)
+            {
+                var fieldName = queryParamter.Name.RemoveTail("Range");
+                builder.Append(" AND ").Append(fieldName).Append(" IN @").Append(queryParamter.Name);
+                return;
             }
 
-            if (query.IdFrom != null)
+            if (queryParamter.Name.EndsWith("From") && !queryParamter.PropertyType.IsArray)
             {
-                builder.Append(" AND Id > @IdFrom");
+                var fieldName = queryParamter.Name.RemoveTail("From");
+                builder.Append(" AND ").Append(fieldName).Append(" > @").Append(queryParamter.Name);
+                return;
             }
 
-            if (query.IdTo != null)
+            if (queryParamter.Name.EndsWith("To") && !queryParamter.PropertyType.IsArray)
             {
-                builder.Append(" AND Id < @IdTo");
+                var fieldName = queryParamter.Name.RemoveTail("To");
+                builder.Append(" AND ").Append(fieldName).Append(" < @").Append(queryParamter.Name);
+                return;
             }
 
-            if (query.Ids != null)
-            {
-                builder.Append(" AND Id IN @Ids");
-            }
+            builder.Append(" AND ").Append(queryParamter.Name).Append(" = @").Append(queryParamter.Name);
+        }
+    }
 
-            if (query.CreatedAtFrom != null)
-            {
-                builder.Append(" AND CreatedAt > @CreatedAtFrom");
-            }
+    public class BaseDapperDataProvider
+    {
+        protected static ConcurrentDictionary<Type, List<PropertyInfo>> ParamtersCache = new ConcurrentDictionary<Type, List<PropertyInfo>>();
 
-            if (query.CreatedAtTo != null)
-            {
-                builder.Append(" AND CreatedAt < @CreatedAtTo");
-            }
+        protected static List<PropertyInfo> GetProperties(Type type)
+        {
+            if (ParamtersCache.ContainsKey(type)) return ParamtersCache[type];
 
-            if (query.LastModifiedAtFrom != null)
-            {
-                builder.Append(" AND ModifiedAt > @LastModifiedAtFrom");
-            }
+            var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance).ToList();
+            ParamtersCache[type] = properties;
 
-            if (query.LastModifiedAtTo != null)
-            {
-                builder.Append(" AND ModifiedAt < @LastModifiedAtTo");
-            }
+            return properties;
         }
     }
 }

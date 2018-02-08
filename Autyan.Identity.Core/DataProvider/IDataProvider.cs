@@ -14,7 +14,11 @@ namespace Autyan.Identity.Core.DataProvider
 
         Task<int> DeleteByIdAsync(TEntity entity);
 
+        Task<int> DeleteByConditionAsync(object condition);
+
         Task<int> UpdateByIdAsync(TEntity entity);
+
+        Task<int> UpdateByConditionAsync(object updateParamters, object condition);
 
         Task<PagedResult<TEntity>> PagingQueryAsync(TQuery query);
 

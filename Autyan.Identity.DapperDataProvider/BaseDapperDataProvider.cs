@@ -61,9 +61,17 @@ namespace Autyan.Identity.DapperDataProvider
             return Connection.ExecuteAsync(builder.ToString(), new {entity.Id});
         }
 
+        public virtual Task<int> DeleteByConditionAsync(object condition)
+        {
+            var builder = new StringBuilder();
+            builder.Append("DELETE FROM ").Append(TableName).Append(" WHERE 1 = 1");
+            AppendWhere(builder, condition);
+
+            return Connection.ExecuteAsync(builder.ToString(), condition);
+        }
+
         public virtual async Task<int> UpdateByIdAsync(TEntity entity)
         {
-            entity.ModifiedAt = DateTime.Now;
             var builder = new StringBuilder();
             builder.Append("UPDATE ").Append(TableName).Append(" SET ");
             builder.Append(string.Join(",", Columns.Where(c => c != "Id").Select(c => $"{c} = @{c}")));
@@ -71,6 +79,23 @@ namespace Autyan.Identity.DapperDataProvider
             entity.ModifiedAt = DateTime.Now;
 
             return await Connection.ExecuteAsync(builder.ToString(), entity);
+        }
+
+        public virtual async Task<int> UpdateByConditionAsync(object updateParamters, object condition)
+        {
+            var builder = new StringBuilder();
+            builder.Append("UPDATE ").Append(TableName).Append(" SET ");
+            var updateProperties = GetProperties(updateParamters.GetType());
+            builder.Append(string.Join(",", updateProperties.Select(c => $"{c.Name} = @{c.Name}")));
+            builder.Append(" WHERE 1 = 1");
+            var whereConditions = GetObjectValues(condition, "w_");
+            AppendWhere(builder, whereConditions);
+
+            var parameters = new DynamicParameters();
+            parameters.AddDynamicParams(updateParamters);
+            parameters.AddDynamicParams(whereConditions);
+
+            return await Connection.ExecuteAsync(builder.ToString(), parameters);
         }
 
         public virtual async Task<PagedResult<TEntity>> PagingQueryAsync(TQuery query)
@@ -171,14 +196,14 @@ namespace Autyan.Identity.DapperDataProvider
             return builder;
         }
 
-        protected virtual void AppendWhere(StringBuilder builder, object query)
+        protected virtual void AppendWhere(StringBuilder builder, object whereCondition)
         {
-            var queryParamters = GetProperties(query.GetType())
+            var queryParamters = GetProperties(whereCondition.GetType())
                 .Where(p => p.PropertyType.IsQueryTypes());
 
             foreach (var queryParamter in queryParamters)
             {
-                if (queryParamter.GetValue(query) != null)
+                if (queryParamter.GetValue(whereCondition) != null)
                 {
                     AppendWhereOnQueryParamter(builder, queryParamter);
                 }
@@ -224,6 +249,33 @@ namespace Autyan.Identity.DapperDataProvider
             ParamtersCache[type] = properties;
 
             return properties;
+        }
+
+        protected static IDictionary<string, object> GetObjectValues(object obj, string keyPrefix = null, bool ignoreNullValues = false)
+        {
+            var dic = new Dictionary<string, object>();
+            if (obj == null)
+            {
+                return dic;
+            }
+
+            if (keyPrefix == null)
+            {
+                keyPrefix = String.Empty;
+            }
+            foreach (var property in GetProperties(obj.GetType()))
+            {
+                var value = property.GetValue(obj);
+                if (ignoreNullValues && value == null)
+                {
+                    //ignore
+                }
+                else
+                {
+                    dic.Add($"{keyPrefix}{property.Name}", value);
+                }
+            }
+            return dic;
         }
     }
 }

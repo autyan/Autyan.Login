@@ -265,7 +265,7 @@ namespace Autyan.Identity.DapperDataProvider
 
             if (keyPrefix == null)
             {
-                keyPrefix = String.Empty;
+                keyPrefix = string.Empty;
             }
             foreach (var property in GetProperties(obj.GetType()))
             {

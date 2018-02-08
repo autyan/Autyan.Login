@@ -53,21 +53,21 @@ namespace Autyan.Identity.DapperDataProvider
             return await Connection.QueryAsync<TEntity>(builder.ToString(), query);
         }
 
-        public virtual Task<int> DeleteByIdAsync(TEntity entity)
+        public virtual async Task<int> DeleteByIdAsync(TEntity entity)
         {
             var builder = new StringBuilder();
             builder.Append("DELETE FROM ").Append(TableName).Append(" WHERE Id = @Id");
 
-            return Connection.ExecuteAsync(builder.ToString(), new {entity.Id});
+            return await Connection.ExecuteAsync(builder.ToString(), new {entity.Id});
         }
 
-        public virtual Task<int> DeleteByConditionAsync(object condition)
+        public virtual async Task<int> DeleteByConditionAsync(object condition)
         {
             var builder = new StringBuilder();
             builder.Append("DELETE FROM ").Append(TableName).Append(" WHERE 1 = 1");
             AppendWhere(builder, condition);
 
-            return Connection.ExecuteAsync(builder.ToString(), condition);
+            return await Connection.ExecuteAsync(builder.ToString(), condition);
         }
 
         public virtual async Task<int> UpdateByIdAsync(TEntity entity)
@@ -272,7 +272,7 @@ namespace Autyan.Identity.DapperDataProvider
                 }
                 else
                 {
-                    dic.Add($"{keyPrefix}{property.Name}", value);
+                    dic.Add(keyPrefix + property.Name, value);
                 }
             }
             return dic;

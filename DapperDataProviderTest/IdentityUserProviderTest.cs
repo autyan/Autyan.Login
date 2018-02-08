@@ -31,24 +31,21 @@ namespace Autyan.Identity.DapperDataProvider.Tests
         private static void Query()
         {
             var usersQueue = new ConcurrentQueue<IdentityUser>();
-            var resultsQueue = new ConcurrentQueue<SignInResult>();
             var random = new Random();
             const int threadCounts = 20;
             const int processTotal = 500000;
-            using (var provider = new IdentityUserProvider())
+            var provider = new IdentityUserProvider();
+            for (var i = 0; i < 25; i++)
             {
-                for (var i = 0; i < 25; i++)
+                var start = random.Next(0, 9999998);
+                var users = provider.QueryAsync(new UserQuery
                 {
-                    var start = random.Next(0, 9999998);
-                    var users = provider.QueryAsync(new UserQuery
-                    {
-                        IdFrom = start,
-                        IdTo = start + 20000
-                    }).Result.ToList();
-                    foreach (var user in users)
-                    {
-                        usersQueue.Enqueue(user);
-                    }
+                    IdFrom = start,
+                    IdTo = start + 20000
+                }).Result.ToList();
+                foreach (var user in users)
+                {
+                    usersQueue.Enqueue(user);
                 }
             }
 
@@ -57,54 +54,32 @@ namespace Autyan.Identity.DapperDataProvider.Tests
             watch.Start();
             for (var i = 0; i < threadCounts; i++)
             {
-                tasks.Add(RunQueryAsync(usersQueue, resultsQueue));
+                tasks.Add(RunQueryAsync(usersQueue));
             }
 
             Task.WaitAll(tasks.ToArray());
 
             watch.Stop();
             var avg = processTotal / (watch.Elapsed.TotalMilliseconds / 1000);
-            Console.WriteLine($"useage : {watch.Elapsed.TotalMilliseconds} ms,  avg : {avg:F3} qps, callCount : {resultsQueue.Count}, successCount : {resultsQueue.Count(r => r.Succeed)}");
+            Console.WriteLine($"useage : {watch.Elapsed.TotalMilliseconds} ms,  avg : {avg:F3} qps");
         }
 
-        private static async Task RunQueryAsync(ConcurrentQueue<IdentityUser> queue, ConcurrentQueue<SignInResult> resultsQueue)
+        private static async Task RunQueryAsync(ConcurrentQueue<IdentityUser> queue)
         {
             while (queue.TryDequeue(out var newUser))
             {
-                using (var provider = new IdentityUserProvider())
-                {
-                    var service = new SignInService(provider);
-                    var result = await service.PasswordSignInAsync(newUser.LoginName, newUser.PasswordHash);
-                    //resultsQueue.Enqueue(result);
-                }
+                var provider = new IdentityUserProvider();
+                var service = new SignInService(provider);
+                await service.PasswordSignInAsync(newUser.LoginName, newUser.PasswordHash);
             }
         }
 
         [TestMethod]
         public void UpdateAsyncTest()
         {
-            var passwordHash = "CallMeLazy";
             var provider = new IdentityUserProvider();
-            IEnumerable<IdentityUser> queryResult;
-            Task.Run(async () =>
-            {
-                var query = new UserQuery
-                {
-                    Id = 582739
-                };
-                queryResult = await provider.QueryAsync(query);
-                var user = queryResult.First();
-                Assert.IsNotNull(user);
-                user.PasswordHash = passwordHash;
-                var modifyTimeBeforeUpdate = user.ModifiedAt;
-                await provider.UpdateByIdAsync(user);
-                queryResult = await provider.QueryAsync(query);
-                var userUpdated = queryResult.First();
-                Assert.IsNotNull(userUpdated);
-                Assert.AreEqual(userUpdated.PasswordHash, passwordHash);
-                Assert.AreNotEqual(modifyTimeBeforeUpdate, userUpdated.ModifiedAt);
-                provider.Dispose();
-            }).GetAwaiter().GetResult();
+            var result = Task.Factory.StartNew(() => provider.UpdateByConditionAsync(new { PasswordHash = "userlogin" }, new { IdFrom = 500, IdTo = 5000 })).Result;
+            Console.WriteLine(result.Result);
         }
 
         [TestMethod]
@@ -116,32 +91,23 @@ namespace Autyan.Identity.DapperDataProvider.Tests
         private static void Insert()
         {
             var usersQueue = new ConcurrentQueue<IdentityUser>();
-            var resultsQueue = new ConcurrentQueue<SignInResult>();
             const int threadCounts = 20;
             const int processTotal = 1000000;
             var random = new Random();
             var loginNames = new Dictionary<string, string>();
-            using (var provider = new IdentityUserProvider())
+            var index = 0;
+            while (index < processTotal)
             {
-                var index = 0;
-                while (index < processTotal)
-                {
-                    var randomName = RandomString(random.Next(4, 20), random);
-                    if (loginNames.ContainsKey(randomName)) continue;
-                    //var user = provider.FirstOrDefaultAsync(new UserQuery
-                    //{
-                    //    LoginName = randomName
-                    //}).Result;
-                    //if (user != null) continue;
+                var randomName = RandomString(random.Next(4, 20), random);
+                if (loginNames.ContainsKey(randomName)) continue;
 
-                    loginNames.Add(randomName, randomName);
-                    usersQueue.Enqueue(new IdentityUser
-                    {
-                        LoginName = randomName,
-                        PasswordHash = "userlogin"
-                    });
-                    index++;
-                }
+                loginNames.Add(randomName, randomName);
+                usersQueue.Enqueue(new IdentityUser
+                {
+                    LoginName = randomName,
+                    PasswordHash = "userlogin"
+                });
+                index++;
             }
 
             var watch = new Stopwatch();
@@ -149,7 +115,7 @@ namespace Autyan.Identity.DapperDataProvider.Tests
             watch.Start();
             for (var i = 0; i < threadCounts; i++)
             {
-                tasks.Add(RunInsertAsync(usersQueue, resultsQueue));
+                tasks.Add(RunInsertAsync(usersQueue));
             }
 
             Task.WaitAll(tasks.ToArray());
@@ -157,22 +123,16 @@ namespace Autyan.Identity.DapperDataProvider.Tests
             watch.Stop();
 
             var avg = processTotal / (watch.Elapsed.TotalMilliseconds / 1000);
-            Console.WriteLine($"currenttime: {DateTime.Now:HH:mm:ss,fff},useage : {watch.Elapsed.TotalMilliseconds} ms,  avg : {avg:F3} qps, callCount : {resultsQueue.Count}, successCount : {resultsQueue.Count(r => r.Succeed)}");
+            Console.WriteLine($"currenttime: {DateTime.Now:HH:mm:ss,fff},useage : {watch.Elapsed.TotalMilliseconds} ms,  avg : {avg:F3} qps");
         }
 
-        public static async Task RunInsertAsync(ConcurrentQueue<IdentityUser> usersQueue, ConcurrentQueue<SignInResult> resultQueue)
+        public static async Task RunInsertAsync(ConcurrentQueue<IdentityUser> usersQueue)
         {
             while (usersQueue.TryDequeue(out var user))
             {
-                using (var provider = new IdentityUserProvider())
-                {
-                    var service = new SignInService(provider);
-                    var result = await service.RegisterAsync(user);
-                    //if (result.Succeed)
-                    //{
-                    //    resultQueue.Enqueue(result);
-                    //}
-                }
+                var provider = new IdentityUserProvider();
+                var service = new SignInService(provider);
+                await service.RegisterAsync(user);
             }
         }
 

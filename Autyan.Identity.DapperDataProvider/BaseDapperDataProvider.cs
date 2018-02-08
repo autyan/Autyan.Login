@@ -88,8 +88,8 @@ namespace Autyan.Identity.DapperDataProvider
             var updateProperties = GetProperties(updateParamters.GetType());
             builder.Append(string.Join(",", updateProperties.Select(c => $"{c.Name} = @{c.Name}")));
             builder.Append(" WHERE 1 = 1");
+            AppendWhere(builder, condition, "w_");
             var whereConditions = GetObjectValues(condition, "w_");
-            AppendWhere(builder, whereConditions);
 
             var parameters = new DynamicParameters();
             parameters.AddDynamicParams(updateParamters);
@@ -196,7 +196,7 @@ namespace Autyan.Identity.DapperDataProvider
             return builder;
         }
 
-        protected virtual void AppendWhere(StringBuilder builder, object whereCondition)
+        protected virtual void AppendWhere(StringBuilder builder, object whereCondition, string paramterPrefix = null)
         {
             var queryParamters = GetProperties(whereCondition.GetType())
                 .Where(p => p.PropertyType.IsQueryTypes());
@@ -205,31 +205,35 @@ namespace Autyan.Identity.DapperDataProvider
             {
                 if (queryParamter.GetValue(whereCondition) != null)
                 {
-                    AppendWhereOnQueryParamter(builder, queryParamter);
+                    AppendWhereOnQueryParamter(builder, queryParamter, paramterPrefix);
                 }
             }
         }
 
-        protected virtual void AppendWhereOnQueryParamter(StringBuilder builder, PropertyInfo queryParamter)
+        protected virtual void AppendWhereOnQueryParamter(StringBuilder builder, PropertyInfo queryParamter, string paramterPrefix = null)
         {
+            if (paramterPrefix == null)
+            {
+                paramterPrefix = string.Empty;
+            }
             if (queryParamter.Name.EndsWith("Range") && queryParamter.PropertyType.IsArray)
             {
                 var fieldName = queryParamter.Name.RemoveTail("Range");
-                builder.Append(" AND ").Append(fieldName).Append(" IN @").Append(queryParamter.Name);
+                builder.Append(" AND ").Append(fieldName).Append(" IN @").Append(paramterPrefix + queryParamter.Name);
                 return;
             }
 
             if (queryParamter.Name.EndsWith("From") && !queryParamter.PropertyType.IsArray)
             {
                 var fieldName = queryParamter.Name.RemoveTail("From");
-                builder.Append(" AND ").Append(fieldName).Append(" > @").Append(queryParamter.Name);
+                builder.Append(" AND ").Append(fieldName).Append(" > @").Append(paramterPrefix + queryParamter.Name);
                 return;
             }
 
             if (queryParamter.Name.EndsWith("To") && !queryParamter.PropertyType.IsArray)
             {
                 var fieldName = queryParamter.Name.RemoveTail("To");
-                builder.Append(" AND ").Append(fieldName).Append(" < @").Append(queryParamter.Name);
+                builder.Append(" AND ").Append(fieldName).Append(" < @").Append(paramterPrefix + queryParamter.Name);
                 return;
             }
 
